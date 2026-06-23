@@ -1,0 +1,89 @@
+/* ── Tokens compartidos ──────────────────────────────────────────────
+   Antes estaban duplicados en el <style> de cada componente; ahora viven
+   acá una sola vez y los heredan la calculadora (.cb-root) y el gestor
+   (.tk-root) además de la barra de navegación. */
+:root {
+  --paper: #F7EFD9;
+  --ink: #1A1620;
+  --red: #E62429;
+  --yellow: #FFD400;
+  --blue: #2E6FD4;
+  --white: #FFFFFF;
+  --mut: #6E6A63;
+  --green: #3FB24B;
+  --display: Impact, "Haettenschweiler", "Arial Narrow Bold", sans-serif;
+  --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #EAE0C4;
+  background-image: radial-gradient(rgba(230, 36, 41, .10) 1.1px, transparent 1.3px);
+  background-size: 9px 9px;
+  color: var(--ink);
+  font-family: var(--body);
+}
+
+.app-shell {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 22px 16px 48px;
+}
+
+/* ── Barra de navegación (misma piel: papel + tinta + sombras duras + Impact) ── */
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: var(--white);
+  border: 4px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 7px 7px 0 var(--ink);
+  padding: 11px 16px;
+  margin-bottom: 24px;
+}
+.app-nav-brand {
+  font-family: var(--display);
+  font-size: 16px;
+  letter-spacing: .07em;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 5px 13px 4px;
+  border-radius: 3px;
+  transform: rotate(-1.4deg);
+}
+.app-nav-tabs {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.app-tab {
+  font-family: var(--display);
+  font-size: 16px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  background: var(--white);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  padding: 8px 17px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform .08s, box-shadow .08s, background .08s;
+}
+.app-tab:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.app-tab:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.app-tab.is-active {
+  background: var(--yellow);
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-tab { transition: none; }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "combat-suite",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "author": "",
+  "description": "Suite de combate por turnos para MHRPG: calculadora de daño + gestor de combate. 100% client-side.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "vite": "^6.4.3",
+    "vitest": "^3.2.6"
+  }
+}

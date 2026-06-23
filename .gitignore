@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vite
+
+# Tooling local de Claude Code (contiene rutas con el usuario de la máquina).
+.claude/
+
+# Documento de brief: referencia local, no se publica (describe la
+# estrategia de anonimato y la identidad de la cuenta).
+BRIEF_CLAUDE_CODE.md
