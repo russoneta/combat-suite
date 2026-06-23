@@ -51,6 +51,11 @@ export default function App() {
           <Tracker danoEntrante={danoEntrante} onConsumirDano={() => setDanoEntrante(null)} />
         )}
       </main>
+
+      <footer className="app-foot">
+        <div className="app-credit">CALCULADORA &amp; GESTOR — by <b>TAKE</b></div>
+        <div className="app-pd">P.D.: maldito seas darthsaren <em>(chiquitito)</em></div>
+      </footer>
     </div>
   );
 }
