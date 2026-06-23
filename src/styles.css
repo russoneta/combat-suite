@@ -135,8 +135,3 @@ body {
   font-style: italic;
   color: var(--mut);
 }
-.app-pd em {
-  font-style: normal;
-  font-size: 10px;
-  opacity: .8;
-}
