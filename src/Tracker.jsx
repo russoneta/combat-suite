@@ -1,5 +1,7 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { PA_BASE, num, cupos, codigo, vitActual, paDisponible, paGastado, estadoDe } from "./engine.js";
+import { usePersistedState } from "./usePersistedState.js";
+import { encodeCombate, decodeCombate } from "./share.js";
 
 // ── Datos iniciales ─────────────────────────────────────────────────
 const INI = [
@@ -7,12 +9,49 @@ const INI = [
   { id: 2, nombre: "Oponente", bando: "B", vitMax: 1000, vel: 5, vigMax: 1, vigorRestante: 1, huido: false },
 ];
 
-export default function Tracker() {
-  const [combatientes, setCombatientes] = useState(INI);
-  const [movidas, setMovidas] = useState([]);
-  const [ronda, setRonda] = useState(1);
-  const idRef = useRef(100);
+export default function Tracker({ danoEntrante, onConsumirDano }) {
+  const [combatientes, setCombatientes] = usePersistedState("cs.track.combatientes", INI);
+  const [movidas, setMovidas] = usePersistedState("cs.track.movidas", []);
+  const [ronda, setRonda] = usePersistedState("cs.track.ronda", 1);
+  const idRef = useRef(null);
+  if (idRef.current === null) {
+    // arranca por encima del mayor id presente (combatientes + movidas) para no colisionar tras recargar
+    idRef.current = Math.max(100, ...combatientes.map((c) => c.id), ...movidas.map((m) => m.id));
+  }
   const nid = () => ++idRef.current;
+
+  // Importar un combate compartido por URL (?c=...) una sola vez, y limpiar el param.
+  const urlImported = useRef(false);
+  useEffect(() => {
+    if (urlImported.current) return;
+    urlImported.current = true;
+    const shared = decodeCombate(new URLSearchParams(window.location.search).get("c") || "");
+    if (shared) {
+      setCombatientes(shared.combatientes);
+      setMovidas(shared.movidas);
+      setRonda(shared.ronda);
+    }
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("c")) {
+      url.searchParams.delete("c");
+      window.history.replaceState({}, "", url);
+    }
+  }, [setCombatientes, setMovidas, setRonda]);
+
+  // Compartir el combate actual como link (estado serializado en la URL).
+  const [copiado, setCopiado] = useState(false);
+  const compartir = async () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("c", encodeCombate({ combatientes, movidas, ronda }));
+    const link = url.toString();
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      window.prompt("Copiá el link del combate:", link);
+    }
+  };
 
   const ordenTurnos = useMemo(() => {
     return combatientes
@@ -55,6 +94,7 @@ export default function Tracker() {
         <div className="tk-round">
           <div className="tk-round-box"><span>Ronda</span><b>{ronda}</b></div>
           <button className="tk-btn" onClick={nuevaRonda}>Nueva ronda ▸</button>
+          <button className="tk-btn tk-btn-ghost" onClick={compartir}>{copiado ? "¡Copiado! ✓" : "Compartir ▸"}</button>
           <button className="tk-btn tk-btn-ghost" onClick={reiniciar}>Reiniciar</button>
         </div>
       </header>
@@ -81,6 +121,8 @@ export default function Tracker() {
         movidas={movidas}
         ronda={ronda}
         nid={nid}
+        danoEntrante={danoEntrante}
+        onConsumirDano={onConsumirDano}
         onAdd={(m) => setMovidas((ms) => [...ms, m])}
         onDel={(id) => setMovidas((ms) => ms.filter((m) => m.id !== id))}
       />
@@ -171,13 +213,18 @@ function Carta({ c, combatientes, movidas, ronda, editar, ajustarVigor, toggleHu
 }
 
 // ── Bitácora ────────────────────────────────────────────────────────
-function Bitacora({ combatientes, movidas, ronda, nid, onAdd, onDel }) {
+function Bitacora({ combatientes, movidas, ronda, nid, danoEntrante, onConsumirDano, onAdd, onDel }) {
   const enPie = combatientes;
   const [ej, setEj] = useState("");
   const [ob, setOb] = useState("");
   const [pa, setPa] = useState("1");
   const [dano, setDano] = useState("");
   const [nota, setNota] = useState("");
+
+  // Precarga el daño cuando llega desde la calculadora (puente entre módulos).
+  useEffect(() => {
+    if (danoEntrante && danoEntrante.valor != null) setDano(String(danoEntrante.valor));
+  }, [danoEntrante]);
 
   const ejId = ej || (combatientes[0] && combatientes[0].id) || "";
   const obId = ob || (combatientes[1] && combatientes[1].id) || (combatientes[0] && combatientes[0].id) || "";
@@ -191,6 +238,7 @@ function Bitacora({ combatientes, movidas, ronda, nid, onAdd, onDel }) {
     if (dano === "" && num(pa) === 0) return;
     onAdd({ id: nid(), ronda, ejecutorId: Number(ejId), objetivoId: Number(obId), pa: num(pa), dano: num(dano), nota: nota.trim() });
     setDano(""); setNota(""); setPa("1");
+    onConsumirDano?.();
   };
 
   const visibles = movidas.slice().reverse();
@@ -217,7 +265,7 @@ function Bitacora({ combatientes, movidas, ronda, nid, onAdd, onDel }) {
           <input inputMode="numeric" value={pa} onChange={(e) => setPa(e.target.value)} />
         </label>
         <label className="tk-f tk-f-sm">
-          <span>Daño</span>
+          <span>Daño{danoEntrante && danoEntrante.valor != null ? <em className="tk-from-calc">↳ calc</em> : null}</span>
           <input inputMode="decimal" value={dano} onChange={(e) => setDano(e.target.value)} placeholder="0" />
         </label>
         <label className="tk-f">
@@ -368,6 +416,8 @@ const CSS = `
 .tk-f select:focus,.tk-f input:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 2px rgba(46,111,212,.25);}
 .tk-reg{align-self:end;}
 .tk-form-hint{font-size:10.5px; color:var(--mut); font-weight:600; margin-top:7px;}
+.tk-from-calc{font-style:normal; color:var(--blue); font-weight:800; font-size:9px; background:rgba(46,111,212,.14);
+  border:1.5px solid var(--blue); border-radius:3px; padding:0 4px; margin-left:5px; vertical-align:middle;}
 
 .tk-log{list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:6px;}
 .tk-log-row{display:flex; align-items:center; gap:9px; flex-wrap:wrap; background:#faf6ea;

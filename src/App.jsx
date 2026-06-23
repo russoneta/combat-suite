@@ -9,12 +9,27 @@ const TABS = [
 ];
 
 export default function App() {
-  const [tab, setTab] = useState("calc");
+  const [tab, setTab] = useState(() => {
+    // un link de combate compartido (?c=...) abre directo en el gestor
+    try {
+      return new URLSearchParams(window.location.search).has("c") ? "track" : "calc";
+    } catch {
+      return "calc";
+    }
+  });
+  // Puente calculadora → gestor: daño calculado que viaja a la bitácora.
+  const [danoEntrante, setDanoEntrante] = useState(null);
+
+  const enviarDanoAlGestor = (valor) => {
+    setDanoEntrante({ valor, ts: Date.now() }); // ts re-dispara aunque el valor repita
+    setTab("track");
+  };
 
   return (
     <div className="app-shell">
       <nav className="app-nav">
         <div className="app-nav-brand">COMBAT SUITE</div>
+        <span className="app-alpha">ALPHA</span>
         <div className="app-nav-tabs">
           {TABS.map((t) => (
             <button
@@ -30,7 +45,11 @@ export default function App() {
       </nav>
 
       <main>
-        {tab === "calc" ? <Calculadora /> : <Tracker />}
+        {tab === "calc" ? (
+          <Calculadora onEnviarDano={enviarDanoAlGestor} />
+        ) : (
+          <Tracker danoEntrante={danoEntrante} onConsumirDano={() => setDanoEntrante(null)} />
+        )}
       </main>
     </div>
   );

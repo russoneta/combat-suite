@@ -1,5 +1,6 @@
-import { useState, useRef, useMemo } from "react";
+import { useRef, useMemo } from "react";
 import { calcular } from "./engine.js";
+import { usePersistedState } from "./usePersistedState.js";
 
 // ── Presentación: estrella de cómic del daño final ──────────────────
 function burstPath(cx, cy, n, outer, inner, jit) {
@@ -29,10 +30,17 @@ const STATS_INI = [
   { id: "arma", nombre: "ARMA", valor: "350" },
 ];
 
-export default function Calculadora() {
-  const [s, setS] = useState(EJEMPLO);
-  const [stats, setStats] = useState(STATS_INI);
-  const idRef = useRef(0);
+export default function Calculadora({ onEnviarDano }) {
+  const [s, setS] = usePersistedState("cs.calc.s", EJEMPLO);
+  const [stats, setStats] = usePersistedState("cs.calc.stats", STATS_INI);
+  const idRef = useRef(null);
+  if (idRef.current === null) {
+    // arranca el contador por encima del mayor stat "sN" ya guardado (evita colisión tras recargar)
+    idRef.current = stats.reduce((mx, st) => {
+      const m = /^s(\d+)$/.exec(st.id);
+      return m ? Math.max(mx, +m[1]) : mx;
+    }, 0);
+  }
 
   const statSel = stats.find((st) => st.id === s.baseOrigen);
   const baseEf = s.baseOrigen === "manual" ? s.base : statSel ? statSel.valor : "0";
@@ -163,6 +171,11 @@ export default function Calculadora() {
           <div className="cb-final-num">{r.final}</div>
         </div>
         <div className="cb-final-pre">antes de redondeo · {fmt(r.preFloor)}</div>
+        {onEnviarDano && (
+          <button className="cb-send" onClick={() => onEnviarDano(r.final)} title="Manda este daño a la bitácora del gestor">
+            Enviar al gestor ▸
+          </button>
+        )}
       </div>
     </div>
   );
@@ -274,6 +287,12 @@ select.cb-in{cursor:pointer;}
 .cb-final-num{position:relative; z-index:1; font-family:var(--display); font-size:64px; line-height:1; color:var(--ink);
   font-variant-numeric:tabular-nums; text-shadow:3px 3px 0 rgba(255,255,255,.35);}
 .cb-final-pre{font-size:11px; color:var(--mut); font-weight:700; font-variant-numeric:tabular-nums;}
+.cb-send{margin-top:12px; background:var(--blue); color:var(--white); font-family:var(--display); font-size:15px;
+  letter-spacing:.05em; text-transform:uppercase; border:3px solid var(--ink); border-radius:4px;
+  padding:8px 18px; cursor:pointer; box-shadow:3px 3px 0 var(--ink); transition:transform .08s, box-shadow .08s;
+  text-shadow:1.5px 1.5px 0 #000,-1.5px 1.5px 0 #000,1.5px -1.5px 0 #000,-1.5px -1.5px 0 #000;}
+.cb-send:hover{transform:translate(3px,3px); box-shadow:0 0 0 var(--ink);}
+.cb-send:focus-visible{outline:3px solid var(--blue); outline-offset:2px;}
 
 @media (prefers-reduced-motion:reduce){.cb-btn{transition:none;}}
 `;
